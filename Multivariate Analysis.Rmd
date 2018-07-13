@@ -1,0 +1,139 @@
+---
+title: "Titanic data Multivariate Analysis"
+output: html_document
+---
+
+```{r}
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+train_data <- read.csv(file="https://raw.githubusercontent.com/agconti/kaggle-titanic/master/data/train.csv",header=T,sep=",")
+str(train_data)
+train_data$Survived = as.factor(train_data$Survived)
+train_data$Pclass = as.factor(train_data$Pclass)
+train_data$Name = as.character(train_data$Name)
+train_data$Ticket = as.character(train_data$Ticket)
+train_data$Embarked[train_data$Embarked == ""] = 'S'
+train_data$Title <- sapply(train_data$Name, FUN=function(x) {strsplit(x, split='[,.]')[[1]][2]})
+train_data$Title <- sub(' ', '', train_data$Title)
+table(train_data$Title)
+train_data$Title[train_data$Title %in% c('Mlle', 'Ms', 'Dona', 'Lady')] <- 'Miss'
+train_data$Title[train_data$Title %in% c('Mme')] <- 'Mrs'
+train_data$Title[train_data$Title %in% c('Capt', 'Col', 'Don', 'Dr', 'Jonkheer', 'Rev', 'the Countess', 'Major', 'Sir')] <- 'Officer'
+mean_mr = mean(train_data$Age[train_data$Title == 'Mr' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Mr' & is.na(train_data$Age)]=mean_mr
+
+mean_mrs = mean(train_data$Age[train_data$Title == 'Mrs' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Mrs' & is.na(train_data$Age)]=mean_mrs
+
+mean_master = mean(train_data$Age[train_data$Title == 'Master' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Master' & is.na(train_data$Age)]=mean_master
+
+mean_miss = mean(train_data$Age[train_data$Title == 'Miss' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Miss' & is.na(train_data$Age)]=mean_miss
+
+mean_officer = mean(train_data$Age[train_data$Title == 'Officer' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Officer' & is.na(train_data$Age)]=mean_officer
+```
+
+
+Pclass, Sex and Survived
+```{r}
+ggplot(train_data, aes(x = Pclass, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + facet_grid(.~Sex) +
+    labs(x = 'Pclass', y = 'percent', fill = 'Survived', title = 'Pclass, Sex and Survived')+ theme_grey()
+```
+Pclass, Embarked and Survived
+```{r}
+ggplot(train_data, aes(x = Pclass, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + facet_grid(.~Embarked) +
+    labs(x = 'Pclass', y = 'percent', fill = 'Survived', title = 'Pclass, Embarked and Survived')+ theme_grey()
+```
+Embarked, Sex and Survived
+```{r}
+ggplot(train_data, aes(x = Embarked, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + facet_grid(.~Sex) +
+    labs(x = 'Embarked', y = 'percent', fill = 'Survived', title = 'Embarked, Sex and Survived')+ theme_grey()
+```
+FamilySize, Sex and Survived
+```{r}
+train_data$FamilySize <- train_data$SibSp + train_data$Parch +1
+ggplot(train_data, aes(x = FamilySize, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 0),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + facet_grid(.~Sex) +
+    labs(x = 'FamilySize', y = 'percent', fill = 'Survived', title = 'FamilySize, Sex and Survived')+ theme_grey()
+```
+FamilySize, Pclass and Survived
+```{r}
+ggplot(train_data, aes(x = FamilySize, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 0),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + facet_grid(.~Pclass) +
+    labs(x = 'FamilySize', y = 'percent', fill = 'Survived', title = 'FamilySize, Pclass and Survived')+ theme_grey()
+```
+FamilySize, Embarked and Survived
+```{r}
+ggplot(train_data, aes(x = FamilySize, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 0),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + facet_grid(.~Embarked) +
+    labs(x = 'FamilySize', y = 'percent', fill = 'Survived', title = 'FamilySize, Embarked and Survived')+ theme_grey()
+```
+Pclass, Sex, Embarked, Survived
+```{r}
+ggplot(train_data, aes(x = Embarked, fill = Survived)) +
+  geom_bar(position = "dodge") +
+  facet_grid(Sex ~ Pclass) +
+  scale_y_log10() +
+labs(x = 'Embarked', y = 'Count', fill = 'Survived', title = 'Pclass, Sex, Embarked, Survived')
+```
+
+```{r}
+ggplot(train_data, aes(x = FamilySize, fill = Survived)) +
+  geom_bar(position = "dodge") +
+  facet_grid(Sex ~ Pclass) +
+  scale_y_log10() +
+labs(x = 'FamilySize', y = 'Count', fill = 'Survived', title = 'Pclass, Sex, FamilySize, Survived')
+```
+
+
+Age, Fare, Pclass, Embarked, Survived, Sex
+```{r}
+ggplot(train_data, aes(Age, Fare, color = Survived, shape = Sex)) +
+  geom_point() +
+  scale_y_log10() +
+  facet_grid(Pclass ~ Embarked)
+```
+
