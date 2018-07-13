@@ -1,0 +1,310 @@
+---
+title: "Titanic data Bivariate Analysis"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r}
+train_data <- read.csv(file="https://raw.githubusercontent.com/agconti/kaggle-titanic/master/data/train.csv",header=T,sep=",")
+str(train_data)
+train_data$Survived = as.factor(train_data$Survived)
+train_data$Pclass = as.factor(train_data$Pclass)
+train_data$Name = as.character(train_data$Name)
+train_data$Ticket = as.character(train_data$Ticket)
+train_data$Embarked[train_data$Embarked == ""] = 'S'
+colSums(train_data =="")
+colSums(is.na(train_data))
+```
+
+
+
+
+1.Pclass Vs survived
+```{r}
+table(train_data$Pclass, train_data$Survived)
+```
+
+```{r}
+prop.table(table(train_data$Pclass, train_data$Survived))
+```
+
+```{r}
+#install.packages("pspearman")
+library(pspearman)
+spearman.test(train_data$Survived, train_data$Pclass)$estimate
+```
+There is no strong correlation between Pclass and Survived
+Visualize Pclass and Survived
+```{r}
+ggplot(train_data, aes(x = Pclass, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'Pclass', y = 'percent', fill = 'Survived', title = 'Pclass Vs Survived')
+```
+Here we can see that majority of first class passengers survived, and most people in 3rd class died.
+2.Sex Vs Survived
+```{r}
+table(train_data$Sex, train_data$Survived)
+```
+
+```{r}
+prop.table(table(train_data$Sex, train_data$Survived))
+```
+
+```{r}
+spearman.test(train_data$Sex, train_data$Survived)$estimate
+```
+There is no strong correlation between Sex and Survived
+Visualize Sex and Survived
+```{r}
+ggplot(train_data, aes(x = Sex, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'Sex', y = 'percent', fill = 'Survived', title = 'Sex Vs Survived')
+```
+Majority of females were Survived and more males were died.
+3.Embarked Vs survived
+```{r}
+table(train_data$Embarked, train_data$Survived)
+```
+
+```{r}
+prop.table(table(train_data$Embarked, train_data$Survived))
+```
+
+```{r}
+#install.packages("pspearman")
+library(pspearman)
+spearman.test(train_data$Survived, train_data$Embarked)$estimate
+```
+There is no strong correlation between Embarked and Survived
+Visualize Embarked and Survived
+```{r}
+ggplot(train_data, aes(x = Embarked, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'Embarked', y = 'percent', fill = 'Survived', title = 'Embarked Vs Survived')
+```
+Passengers who embarked at Southampton suvived more and died more too.
+4.Name Vs Survived
+Make a variable named Title from Name.
+```{r}
+train_data$Title <- sapply(train_data$Name, FUN=function(x) {strsplit(x, split='[,.]')[[1]][2]})
+train_data$Title <- sub(' ', '', train_data$Title)
+table(train_data$Title)
+train_data$Title[train_data$Title %in% c('Mlle', 'Ms', 'Dona', 'Lady')] <- 'Miss'
+train_data$Title[train_data$Title %in% c('Mme')] <- 'Mrs'
+train_data$Title[train_data$Title %in% c('Capt', 'Col', 'Don', 'Dr', 'Jonkheer', 'Rev', 'the Countess', 'Major', 'Sir')] <- 'Officer'
+```
+
+```{r}
+ggplot(train_data, aes(x = Title, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')), 
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + 
+    labs(x = 'Title', y = 'percent', fill = 'Survived', title = 'Title Vs Survived')
+```
+5.Age Vs Survived
+For an age variable containing a missing value, assign the mean age value for each title not containing a missing value.
+```{r}
+mean_mr = mean(train_data$Age[train_data$Title == 'Mr' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Mr' & is.na(train_data$Age)]=mean_mr
+
+mean_mrs = mean(train_data$Age[train_data$Title == 'Mrs' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Mrs' & is.na(train_data$Age)]=mean_mrs
+
+mean_master = mean(train_data$Age[train_data$Title == 'Master' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Master' & is.na(train_data$Age)]=mean_master
+
+mean_miss = mean(train_data$Age[train_data$Title == 'Miss' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Miss' & is.na(train_data$Age)]=mean_miss
+
+mean_officer = mean(train_data$Age[train_data$Title == 'Officer' & !is.na(train_data$Age)])
+train_data$Age[train_data$Title == 'Officer' & is.na(train_data$Age)]=mean_officer
+```
+
+```{r}
+summary(train_data$Age)
+```
+Visualize Age with Survived
+```{r}
+ggplot(train_data, aes(x = Age, fill = Survived)) +
+geom_density(alpha=0.5, aes(fill=factor(Survived))) + labs(title="Survival density and Age") +
+scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + theme_grey()
+```
+Ages between 30 and 35 mostly survived
+6.Fare Vs Survived
+```{r}
+colSums(is.na(train_data))
+```
+Visualize Fare with Survived
+```{r}
+ggplot(train_data, aes(x = Fare, fill = Survived)) +
+geom_density(alpha=0.5, aes(fill=factor(Survived))) + labs(title="Survival density and Fare") +
+scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + theme_grey()
+```
+7.Sibsp Vs Survived
+```{r}
+prop.table(table(train_data$SibSp, train_data$Survived))
+```
+
+```{r}
+ggplot(train_data, aes(x = SibSp, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')), 
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + 
+    labs(x = 'SibSp', y = 'percent', fill = 'Survived', title = 'SibSp Vs Survived')
+```
+7.Parch Vs Survived
+```{r}
+prop.table(table(train_data$Parch, train_data$Survived))
+```
+
+```{r}
+ggplot(train_data, aes(x = Parch, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')), 
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) + 
+    labs(x = 'Parch', y = 'percent', fill = 'Survived', title = 'Parch Vs Survived')
+```
+we add SibSp and Parch named FamilySize.
+```{r}
+train_data$FamilySize <- train_data$SibSp + train_data$Parch +1
+```
+Have a look at this table
+```{r}
+table(train_data$FamilySize)
+```
+Let us look at the proportion
+```{r}
+prop.table(table(train_data$FamilySize, train_data$Survived))
+```
+Visualize this data
+```{r}
+ggplot(train_data, aes(x = FamilySize, fill = Survived)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'FamilySize', y = 'percent', fill = 'Survived', title ='FamilySize Vs Survived')
+```
+This shows that families with a family size bigger than 2 but less than 5 have a more than 50% to survive, in contrast to families with 1 member or more than 5 members.
+Pclass and sex
+```{r}
+prop.table(table(train_data$Pclass, train_data$Sex))
+```
+visualize Pclass and Sex
+```{r}
+ggplot(train_data, aes(x = Pclass, fill = Sex)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'Pclass', y = 'percent', fill = 'Sex', title = 'Pclass Vs Sex')
+```
+More passengers travelled in class 3 and most of them were males, almost 39%.
+Pclass Vs Embarked
+```{r}
+prop.table(table(train_data$Pclass, train_data$Embarked))
+```
+Visualize it
+```{r}
+ggplot(train_data, aes(x = Pclass, fill = Embarked)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'Pclass', y = 'percent', fill = 'Embarked', title = 'Pclass Vs Embarked')
+```
+Most of the passengers embarked to Southampton and most of them were travelled in class 3.
+Pclass Vs Title
+```{r}
+ggplot(train_data, aes(x = Pclass , fill = Title)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'Pclass', y = 'percent', fill = 'Title', title = 'Pclass Vs Title')
+```
+
+Pclass Vs FamilySize
+```{r}
+ggplot(train_data, aes(x = FamilySize, fill = Pclass)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'FamilySize', y = 'percent', fill = 'Pclass', title = 'FamilySize Vs Pclass')
+```
+
+Sex and Embarked
+```{r}
+
+```
+Visualization
+```{r}
+ggplot(train_data, aes(x = Sex, fill = Embarked)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'Sex', y = 'percent', fill = 'Embarked', title = 'Sex Vs Embarked')
+```
+Most of the male and female are embarked to Southampton and only less people to Queenstown
+Sex Vs FamilySize
+```{r}
+ggplot(train_data, aes(x = FamilySize, fill = Sex)) +
+  geom_bar(aes(y = prop.table(..count..) * 100), position='dodge') +
+  geom_text(aes(y = prop.table(..count..) * 100 + 0.5, 
+                  label = paste0(round(prop.table(..count..) * 100, 2),'%')),
+              stat = 'count', 
+              position = position_dodge(.9), 
+              size = 3) +
+    labs(x = 'FamilySize', y = 'percent', fill = 'Sex', title = 'FamilySize Vs Sex ')
+```
+
+
+
