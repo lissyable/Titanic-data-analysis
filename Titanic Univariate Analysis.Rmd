@@ -398,11 +398,3 @@ ggplot(Full_data, aes(x = FamilySize, fill = FamilySize)) +
 ```
 
 
-```{r}
-
-wine_cor <- cor(wine)
-#install.packages("corrplot")
-library(corrplot)
-corrplot(wine_cor, method = "number")
-```
-
