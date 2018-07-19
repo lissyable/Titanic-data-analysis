@@ -1,0 +1,81 @@
+---
+title: "Titanic_Random Forest"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+Read the titanic dataset which divided into train.csv and test.csv from the following website.
+
+```{r}
+train_data <- read.csv(file="https://raw.githubusercontent.com/agconti/kaggle-titanic/master/data/train.csv",header=T,sep=",")
+test_data <- read.csv(file="https://raw.githubusercontent.com/agconti/kaggle-titanic/master/data/test.csv",header=T,sep=",")
+```
+
+
+```{r}
+str(train_data)
+str(test_data)
+test_data$Survived <- NA
+Full_data <- rbind(train_data, test_data)
+Full_data$Survived = as.factor(Full_data$Survived)
+Full_data$Pclass = as.factor(Full_data$Pclass)
+Full_data$Name = as.character(Full_data$Name)
+Full_data$Title <- sapply(Full_data$Name, FUN=function(x) {strsplit(x, split='[,.]')[[1]][2]})
+Full_data$Title <- sub(' ', '', Full_data$Title)
+Full_data$Title[Full_data$Title %in% c('Mlle', 'Ms', 'Dona', 'Lady')] <- 'Miss'
+Full_data$Title[Full_data$Title %in% c('Mme')] <- 'Mrs'
+Full_data$Title[Full_data$Title %in% c('Capt', 'Col', 'Don', 'Dr', 'Jonkheer', 'Rev', 'the Countess', 'Major', 'Sir')] <- 'Officer'
+mean_mr = mean(Full_data$Age[Full_data$Title == 'Mr' & !is.na(Full_data$Age)])
+Full_data$Age[Full_data$Title == 'Mr' & is.na(Full_data$Age)]=mean_mr
+mean_mrs = mean(Full_data$Age[Full_data$Title == 'Mrs' & !is.na(Full_data$Age)])
+Full_data$Age[Full_data$Title == 'Mrs' & is.na(Full_data$Age)]=mean_mrs
+mean_master = mean(Full_data$Age[Full_data$Title == 'Master' & !is.na(Full_data$Age)])
+Full_data$Age[Full_data$Title == 'Master' & is.na(Full_data$Age)]=mean_master
+mean_miss = mean(Full_data$Age[Full_data$Title == 'Miss' & !is.na(Full_data$Age)])
+Full_data$Age[Full_data$Title == 'Miss' & is.na(Full_data$Age)]=mean_miss
+mean_officer = mean(Full_data$Age[Full_data$Title == 'Officer' & !is.na(Full_data$Age)])
+Full_data$Age[Full_data$Title == 'Officer' & is.na(Full_data$Age)]=mean_officer
+Full_data$Fare[is.na(Full_data$Fare)] = mean(Full_data$Fare[which(Full_data$Embarked == 'S' & Full_data$Pclass == '3' & Full_data$SibSp == 0 & Full_data$Parch == 0)], na.rm = TRUE)
+Full_data$Embarked[Full_data$Embarked == ""] = 'S'
+Full_data$Title = as.factor(Full_data$Title)
+str(Full_data)
+```
+Consider Survived, Pclass, Sex, Age, Sibsp, Parch, Fare, Embarked and Title
+
+```{r}
+Full_data <- Full_data[c(2:3,5:8,10,12:13)]
+```
+
+Splitting the dataset into training set and test set
+
+```{r}
+training_set <- Full_data[!is.na(Full_data$Survived),]
+test_set <- Full_data[is.na(Full_data$Survived),]
+```
+Fitting Random Forest to the training test
+```{r}
+library(randomForest)
+set.seed(1234)
+classifier = randomForest(Survived ~ ., data = training_set, ntree = 1000)
+classifier
+```
+Predicting the test results
+```{r}
+Survived_pred = predict(classifier, newdata = test_set)
+Survived_pred
+```
+Saving the prediction result
+```{r}
+Prediction <- data.frame(PassengerId = test_data$PassengerId, Survived = Survived_pred)
+write.csv(Prediction, file = 'Titanic_RandomForest.csv', row.names = F)
+```
+
